@@ -1,12 +1,11 @@
-# rgsm/tmp/game_selector.ps1
 param (
     [string]$gamesRaw
 )
 
-# Преобразование списка игр
+# Parse games list into an array
 $games = $gamesRaw -split ' '
 
-# Формирование списка для выбора
+# Display the list of games for the user to choose
 Write-Host "============================================"
 Write-Host "No game specified! Please choose one:"
 for ($i = 0; $i -lt $games.Count; $i++) {
@@ -15,10 +14,10 @@ for ($i = 0; $i -lt $games.Count; $i++) {
 }
 Write-Host "============================================"
 
-# Получение ввода пользователя
+# Get user input
 $choice = Read-Host "Enter the number or name of the game"
 
-# Нормализация ввода
+# Normalize input and validate selection
 $selectedGame = $null
 for ($i = 0; $i -lt $games.Count; $i++) {
     $game = $games[$i] -split ':'
@@ -28,11 +27,11 @@ for ($i = 0; $i -lt $games.Count; $i++) {
     }
 }
 
-# Проверка выбора
-if ($null -eq $selectedGame) {
+# If the selection is invalid, exit with an error
+if (-not $selectedGame) {
     Write-Host "Invalid selection. Exiting..." -ForegroundColor Red
     exit 1
 }
 
-# Возврат результата
+# Return the selected game code
 Write-Output $selectedGame
