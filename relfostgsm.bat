@@ -3,35 +3,30 @@ REM relfostgsm - Universal installer for RGSM (Windows)
 
 :: Define RGSM directory
 set RGSM_DIR=%~dp0rgsm
+set TMP_DIR=%RGSM_DIR%\tmp
+
+:: Create tmp directory if not exists
+if not exist "%TMP_DIR%" mkdir "%TMP_DIR%"
 
 :: Define available games
-set GAMES=rustserver trserver sfserver
+set GAMES=rust:Rust terraria:Terraria satisfactory:Satisfactory
 
 :: Check for passed argument
 if "%1"=="" (
-    echo ============================================
-    echo No game specified! Please choose one:
-    echo [1] rustserver
-    echo [2] trserver
-    echo [3] sfserver
-    echo ============================================
-    set /p CHOICE=Enter the number of the game: 
-    if "%CHOICE%"=="1" set GAME=rustserver
-    if "%CHOICE%"=="2" set GAME=trserver
-    if "%CHOICE%"=="3" set GAME=sfserver
-    if not defined GAME (
-        echo Invalid selection. Exiting...
-        exit /b 1
+    REM Download game selector script if not exists
+    if not exist "%TMP_DIR%\game_selector.ps1" (
+        powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/RelFost/RelfostGSM/main/windows/tmp/game_selector.ps1' -OutFile '%TMP_DIR%\game_selector.ps1'"
     )
+
+    REM Call PowerShell script to select game
+    for /f "delims=" %%G in ('powershell -NoProfile -ExecutionPolicy Bypass -File "%TMP_DIR%\game_selector.ps1" -gamesRaw "%GAMES%"') do set GAME=%%G
 ) else (
     set GAME=%1
 )
 
-:: Check if the game is valid
-echo %GAMES% | findstr /i "\b%GAME%\b" >nul
-if errorlevel 1 (
-    echo Invalid game name: %GAME%.
-    echo Available games: rustserver, trserver, sfserver.
+:: Check if GAME is defined
+if not defined GAME (
+    echo Invalid selection. Exiting...
     exit /b 1
 )
 
@@ -72,6 +67,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
     } ^
 }"
 
+:: Check for module and download if not exists
+set MODULE_FILE=%RGSM_DIR%\modules\%GAME%.ps1
+if not exist "%MODULE_FILE%" (
+    echo Downloading module for %GAME%...
+    powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/RelFost/RelfostGSM/main/windows/modules/%GAME%.ps1' -OutFile '%MODULE_FILE%'"
+)
+
+:: Run the module
+powershell -ExecutionPolicy Bypass -NoProfile -File "%MODULE_FILE%"
+
+:: Clean up tmp directory
+del /q "%TMP_DIR%\*.ps1"
+
 :: Create required directories
 if not exist "%RGSM_DIR%\config-default\%GAME%" (
     mkdir "%RGSM_DIR%\config-default\%GAME%"
@@ -82,7 +90,7 @@ if not exist "%RGSM_DIR%\config-rgsm\%GAME%" (
 
 :: Download default config
 echo Downloading default configuration for %GAME%...
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/your-repo/windows/config-default/%GAME%/_default.cfg' -OutFile '%RGSM_DIR%\config-default\%GAME%\_default.cfg'"
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/RelFost/RelfostGSM/main/windows/config-default/%GAME%/_default.cfg' -OutFile '%RGSM_DIR%\config-default\%GAME%\_default.cfg'"
 
 echo Configuration for %GAME% installed successfully.
 exit /b 0
