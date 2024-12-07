@@ -1,0 +1,4 @@
+Package,DownloadUrl,Arguments
+.NET Framework 4.8,https://download.visualstudio.microsoft.com/download/pr/12345/net-framework-installer.exe,/quiet /norestart
+DirectX,https://download.microsoft.com/download/directx-installer.exe,/silent
+VC++ Redistributable 2015-2022,https://aka.ms/vs/17/release/vc_redist.x64.exe,/install /quiet /norestart
