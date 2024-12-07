@@ -59,9 +59,13 @@ if "%WINFILE%"=="" (
     exit /b 1
 )
 
-:: Check for CSV file
+:: Ensure the target directory exists
 set CSV_FILE=%RGSM_DIR%\%WINFILE%
+set CSV_DIR=%~dp0rgsm%\windows\data
 set GITHUB_URL=https://raw.githubusercontent.com/RelFost/RelfostGSM/develop/%WINFILE%
+if not exist "%CSV_DIR%" mkdir "%CSV_DIR%"
+
+:: Check for CSV file and download if not exists
 if not exist "%CSV_FILE%" (
     echo Required file not found: %CSV_FILE%.
     echo Attempting to download %WINFILE% from GitHub...
@@ -79,25 +83,20 @@ echo Downloaded CSV file contents:
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "Get-Content -Path '%CSV_FILE%'"
 
-:: Install required packages from CSV
-echo Checking and installing required packages for Windows %WINVER%...
+:: Download and run the package installer script
+set INSTALLER_SCRIPT_URL=https://raw.githubusercontent.com/RelFost/RelfostGSM/develop/windows/tmp/package_installer.ps1
+set LOCAL_INSTALLER_SCRIPT=%TMP_DIR%\package_installer.ps1
+if exist "%LOCAL_INSTALLER_SCRIPT%" del /q "%LOCAL_INSTALLER_SCRIPT%"
+echo Downloading package installer script...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"Import-Csv '%CSV_FILE%' | ForEach-Object { ^
-    Write-Host 'Checking package:' $_.Package; ^
-    if (!(Get-Package -Name $_.Package -ErrorAction SilentlyContinue)) { ^
-        Write-Host 'Installing:' $_.Package; ^
-        if ($_.DownloadUrl) { ^
-            $installer = Join-Path $env:TEMP ([System.IO.Path]::GetFileName($_.DownloadUrl)); ^
-            Invoke-WebRequest -Uri $_.DownloadUrl -OutFile $installer; ^
-            Start-Process -FilePath $installer -ArgumentList $_.Arguments -Wait; ^
-            Remove-Item -Force $installer; ^
-        } else { ^
-            Write-Host 'No DownloadUrl provided for package:' $_.Package; ^
-        } ^
-    } else { ^
-        Write-Host 'Package already installed:' $_.Package; ^
-    } ^
-}"
+"Invoke-WebRequest -Uri '%INSTALLER_SCRIPT_URL%' -OutFile '%LOCAL_INSTALLER_SCRIPT%'"
+if errorlevel 1 (
+    echo Failed to download package installer script. Exiting...
+    exit /b 1
+)
+
+echo Running package installer...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%LOCAL_INSTALLER_SCRIPT%" -csvFile "%CSV_FILE%"
 
 :: Check for module and download if not exists
 set MODULE_FILE=%RGSM_DIR%\modules\%GAME%.ps1
